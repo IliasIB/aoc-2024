@@ -1,5 +1,7 @@
 use std::{collections::HashSet, fs};
 
+use indicatif::ProgressBar;
+
 type Coord = (i32, i32);
 
 fn read_lines() -> Vec<Vec<char>> {
@@ -99,9 +101,10 @@ fn part_2() {
     let map_size = (map[0].len(), map.len());
     let mut possible_obstructions = 0;
 
+    let bar = ProgressBar::new((map_size.0 * map_size.1) as u64);
     for i in 0..map_size.0 {
         for j in 0..map_size.1 {
-            println!("Solving ({j},{i})");
+            bar.inc(1);
             if map[i][j] == '^' || map[i][j] == '#' {
                 continue;
             }
@@ -112,6 +115,7 @@ fn part_2() {
             }
         }
     }
+    bar.finish();
 
     println!("Part 2: {}", possible_obstructions)
 }
