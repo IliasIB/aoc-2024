@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs};
+use std::fs;
 
 type File = (usize, usize);
 
@@ -75,13 +75,13 @@ fn get_files(disk_map: &Vec<char>) -> Vec<File> {
     return files;
 }
 
-fn get_free_spaces(disk_map: &Vec<char>) -> HashMap<usize, Vec<usize>> {
-    let mut free_spaces: HashMap<usize, Vec<usize>> = HashMap::new();
+fn get_free_spaces(disk_map: &Vec<char>) -> Vec<(usize, usize)> {
+    let mut free_spaces: Vec<(usize, usize)> = Vec::new();
     let mut idx = 0;
     for i in 0..disk_map.len() {
         let digit = disk_map[i].to_digit(10).unwrap() as usize;
-        if i % 2 != 0 {
-            free_spaces.entry(digit).or_default().push(idx);
+        if i % 2 != 0 && digit != 0 {
+            free_spaces.push((digit, idx));
         }
         idx += digit;
     }
@@ -89,20 +89,15 @@ fn get_free_spaces(disk_map: &Vec<char>) -> HashMap<usize, Vec<usize>> {
 }
 
 fn find_free_space(
-    free_spaces: &mut HashMap<usize, Vec<usize>>,
+    free_spaces: &mut Vec<(usize, usize)>,
     before: usize,
     size: usize,
 ) -> Option<(usize, usize)> {
-    for free_space in free_spaces {
-        if free_space.0 < &size {
-            continue;
-        }
-        for i in 0..free_space.1.len() {
-            let space = free_space.1[i];
-            if space < before {
-                let new_space = free_space.1.remove(i);
-                return Some((new_space, free_space.0 - &size));
-            }
+    free_spaces.sort_by(|a, b| a.1.cmp(&b.1));
+    for i in 0..free_spaces.len() {
+        if free_spaces[i].0 >= size && free_spaces[i].1 < before {
+            let free_space = free_spaces.remove(i);
+            return Some((free_space.0 - size, free_space.1));
         }
     }
     return None;
@@ -111,12 +106,12 @@ fn find_free_space(
 fn defragment_with_files(
     blocks: &mut Vec<String>,
     files: &mut Vec<File>,
-    free_spaces: &mut HashMap<usize, Vec<usize>>,
+    free_spaces: &mut Vec<(usize, usize)>,
 ) {
     for i in (0..files.len()).rev() {
         let file_pos = files[i].0;
         let file_size = files[i].1;
-        if let Some((free_space_pos, space_left)) =
+        if let Some((space_left, free_space_pos)) =
             find_free_space(free_spaces, files[i].0, file_size)
         {
             for j in 0..file_size {
@@ -125,10 +120,7 @@ fn defragment_with_files(
             }
             files[i].0 = free_space_pos;
             if space_left > 0 {
-                free_spaces
-                    .entry(space_left)
-                    .or_default()
-                    .push(free_space_pos + file_size);
+                free_spaces.push((space_left, free_space_pos + file_size));
             }
         }
     }
